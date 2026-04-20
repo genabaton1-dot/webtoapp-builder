@@ -1,407 +1,774 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SYSTEM 22: Elite Protocol</title>
-    
-    <!-- React & ReactDOM -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    
-    <!-- Babel for JSX -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Tailwind Config for Custom Colors -->
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'void-black': '#050505',
-                        'cold-blue': '#0ea5e9',
-                        'ice-white': '#e2e8f0',
-                        'danger-red': '#ef4444',
-                        'system-gray': '#1e293b',
-                    },
-                    fontFamily: {
-                        mono: ['"Courier New"', 'Courier', 'monospace'],
-                    },
-                    animation: {
-                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                    }
-                }
-            }
-        }
-    </script>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Мышелов: Поймай мышку</title>
     <style>
+        * {
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            box-sizing: border-box;
+        }
+
         body {
-            background-color: #020617;
-            color: #e2e8f0;
-            font-family: 'Courier New', Courier, monospace;
-        }
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #0f172a; 
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #1e293b; 
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #334155; 
-        }
-        .glass-panel {
-            background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(30, 41, 59, 0.8);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
-        }
-        .glow-text {
-            text-shadow: 0 0 10px rgba(14, 165, 233, 0.5);
-        }
-        .crt-line {
+            margin: 0;
+            padding: 0;
             width: 100%;
-            height: 2px;
-            background: rgba(14, 165, 233, 0.1);
+            height: 100vh;
+            background: linear-gradient(145deg, #1e3b2a 0%, #0f281c 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', 'Roboto', system-ui, -apple-system, sans-serif;
+            touch-action: manipulation;
+            overflow: hidden;
             position: fixed;
-            animation: scanline 5s linear infinite;
-            pointer-events: none;
-            z-index: 50;
         }
-        @keyframes scanline {
-            0% { top: -10%; }
-            100% { top: 110%; }
+
+        /* Полноэкранный контейнер */
+        .game-fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: #4a2e1e;
+        }
+
+        .game-area {
+            background: #f7e8c8;
+            background-image: radial-gradient(circle at 10% 20%, rgba(210,180,140,0.3) 2%, transparent 2.5%);
+            background-size: 32px 32px;
+            position: relative;
+            border-radius: 28px;
+            box-shadow: inset 0 0 0 4px #deb887, inset 0 0 0 8px #f4d03f, 0 10px 20px rgba(0,0,0,0.3);
+            touch-action: none;
+            width: min(95vw, 95vh);
+            height: min(95vw, 95vh);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            border-radius: 24px;
+            background: #f7e8c8;
+            touch-action: none;
+        }
+
+        /* Счёт по центру внизу */
+        .score-display {
+            position: fixed;
+            bottom: 30px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .score-number {
+            font-size: 4rem;
+            font-weight: bold;
+            color: #ffefb9;
+            text-shadow: 0 4px 0 #4a2a1a, 0 6px 12px rgba(0,0,0,0.4);
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(8px);
+            display: inline-block;
+            padding: 10px 30px;
+            border-radius: 80px;
+            letter-spacing: 4px;
+            font-family: monospace;
+        }
+
+        /* Стартовое меню (полноэкранное) */
+        .start-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(12px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .menu-card {
+            background: #fdf8ed;
+            width: 85%;
+            max-width: 380px;
+            border-radius: 70px;
+            text-align: center;
+            padding: 30px 20px 40px;
+            box-shadow: 0 25px 45px rgba(0,0,0,0.5);
+            border: 3px solid #ffcd7e;
+        }
+
+        .menu-card h1 {
+            font-size: 2.6rem;
+            margin: 0;
+            color: #c2611a;
+            text-shadow: 2px 2px 0 #ffd58c;
+        }
+
+        .menu-card p {
+            font-size: 1.2rem;
+            color: #7b4a2a;
+            margin: 10px 0 30px;
+        }
+
+        .menu-btn {
+            display: block;
+            width: 80%;
+            margin: 16px auto;
+            background: #4e8d3e;
+            border: none;
+            padding: 14px 0;
+            font-size: 1.4rem;
+            font-weight: bold;
+            border-radius: 60px;
+            color: white;
+            box-shadow: 0 6px 0 #2b5620;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        .menu-btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #2b5620;
+        }
+
+        .menu-btn.exit {
+            background: #aa4a2e;
+            box-shadow: 0 6px 0 #692d18;
+        }
+
+        .menu-btn.leader {
+            background: #f0a42a;
+            box-shadow: 0 6px 0 #b46212;
+            color: #2f1d0c;
+        }
+
+        /* Модалка таблицы лидеров */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 2100;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-card {
+            background: #fff8ed;
+            width: 85%;
+            max-width: 450px;
+            border-radius: 48px;
+            padding: 20px 20px 30px;
+            text-align: center;
+            box-shadow: 0 20px 35px black;
+            border: 2px solid gold;
+        }
+
+        .modal-card h2 {
+            font-size: 1.8rem;
+            margin: 0 0 12px 0;
+            color: #c47e2e;
+        }
+
+        .leader-list {
+            max-height: 300px;
+            overflow-y: auto;
+            text-align: left;
+            background: #f5e5c8;
+            border-radius: 28px;
+            padding: 8px 5px;
+            margin: 15px 0;
+        }
+
+        .leader-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 1.1rem;
+            padding: 10px 15px;
+            border-bottom: 1px solid #d6b575;
+            font-weight: bold;
+        }
+
+        .rank {
+            background: #dba442;
+            width: 32px;
+            height: 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 30px;
+            color: white;
+            margin-right: 12px;
+        }
+
+        .leader-score {
+            color: #b45f2b;
+            font-size: 1.2rem;
+        }
+
+        .modal input {
+            padding: 12px;
+            font-size: 1rem;
+            border-radius: 60px;
+            border: 2px solid #cd9a5b;
+            width: 70%;
+            text-align: center;
+            outline: none;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 18px;
+        }
+
+        .modal-buttons button {
+            background: #4a6e3c;
+            border: none;
+            color: white;
+            font-weight: bold;
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        @media (max-width: 600px) {
+            .score-number { font-size: 2.8rem; padding: 6px 20px; }
+            .menu-card h1 { font-size: 2rem; }
         }
     </style>
 </head>
 <body>
-    <div id="root"></div>
 
-    <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+<div class="game-fullscreen">
+    <div class="game-area">
+        <canvas id="gameCanvas" width="700" height="700"></canvas>
+    </div>
+</div>
 
-        const AudioEngine = () => {
-            const [isPlaying, setIsPlaying] = useState(false);
-            const audioCtxRef = useRef(null);
-            const nodeRef = useRef(null);
+<div class="score-display" id="scoreDisplay">
+    <div class="score-number" id="scoreValue">0</div>
+</div>
 
-            const toggleNoise = () => {
-                if (isPlaying) {
-                    audioCtxRef.current.close();
-                    setIsPlaying(false);
+<div id="startMenu" class="start-menu">
+    <div class="menu-card">
+        <h1>🐭 МЫШЕЛОВ 🐱</h1>
+        <p>Поймай мышку! Тапни по ней</p>
+        <button id="startGameBtn" class="menu-btn">▶ СТАРТ</button>
+        <button id="leaderboardFromMenuBtn" class="menu-btn leader">🏆 ТАБЛИЦА ЛИДЕРОВ</button>
+        <button id="exitGameBtn" class="menu-btn exit">❌ ВЫХОД</button>
+    </div>
+</div>
+
+<div id="leaderboardModal" class="modal">
+    <div class="modal-card">
+        <h2>🏆 Лучшие мышеловы 🏆</h2>
+        <div id="leaderListContainer" class="leader-list"></div>
+        <div>
+            <input type="text" id="playerNameInput" maxlength="14" placeholder="Ваше имя" autocomplete="off">
+        </div>
+        <div class="modal-buttons">
+            <button id="saveScoreBtn">💾 Сохранить результат</button>
+            <button id="closeModalBtn">Закрыть</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function(){
+        // ---------- ЗВУКИ ----------
+        let audioCtx = null;
+        
+        function initAudio() {
+            if (!audioCtx && (window.AudioContext || window.webkitAudioContext)) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+            }
+        }
+        
+        function playRealisticSqueak() {
+            if (!audioCtx) return;
+            try {
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                const filter = audioCtx.createBiquadFilter();
+                
+                osc.type = 'sine';
+                filter.type = 'bandpass';
+                filter.frequency.value = 3500;
+                filter.Q.value = 5;
+                
+                osc.connect(filter);
+                filter.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                
+                osc.frequency.setValueAtTime(2400, now);
+                osc.frequency.exponentialRampToValueAtTime(1100, now + 0.08);
+                
+                gainNode.gain.setValueAtTime(0, now);
+                gainNode.gain.linearRampToValueAtTime(0.12, now + 0.008);
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
+                
+                const noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.05, audioCtx.sampleRate);
+                const noiseData = noiseBuffer.getChannelData(0);
+                for (let i = 0; i < noiseBuffer.length; i++) {
+                    noiseData[i] = (Math.random() - 0.5) * 0.3;
+                }
+                const noiseSource = audioCtx.createBufferSource();
+                const noiseGain = audioCtx.createGain();
+                noiseSource.buffer = noiseBuffer;
+                noiseSource.loop = false;
+                noiseGain.gain.setValueAtTime(0.04, now);
+                noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.07);
+                noiseSource.connect(noiseGain);
+                noiseGain.connect(audioCtx.destination);
+                
+                osc.start();
+                noiseSource.start();
+                osc.stop(now + 0.12);
+                noiseSource.stop(now + 0.08);
+            } catch(e) {}
+        }
+        
+        function playAlternativeSqueak() {
+            if (!audioCtx) return;
+            try {
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(2100, now);
+                osc.frequency.exponentialRampToValueAtTime(950, now + 0.07);
+                gainNode.gain.setValueAtTime(0, now);
+                gainNode.gain.linearRampToValueAtTime(0.09, now + 0.006);
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.1);
+                
+                osc.start();
+                osc.stop(now + 0.1);
+            } catch(e) {}
+        }
+        
+        function playSqueak() {
+            if (Math.random() > 0.5) {
+                playRealisticSqueak();
+            } else {
+                playAlternativeSqueak();
+            }
+        }
+        
+        function playCatchSound() {
+            if (!audioCtx) return;
+            try {
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.exponentialRampToValueAtTime(1400, now + 0.08);
+                gainNode.gain.setValueAtTime(0, now);
+                gainNode.gain.linearRampToValueAtTime(0.1, now + 0.008);
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.1);
+                
+                osc.start();
+                osc.stop(now + 0.1);
+            } catch(e) {}
+        }
+        
+        function enableAudioOnFirstTouch() {
+            initAudio();
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            document.removeEventListener('touchstart', enableAudioOnFirstTouch);
+            document.removeEventListener('mousedown', enableAudioOnFirstTouch);
+        }
+        
+        document.addEventListener('touchstart', enableAudioOnFirstTouch);
+        document.addEventListener('mousedown', enableAudioOnFirstTouch);
+        
+        // ---------- ОСНОВНАЯ ЛОГИКА ИГРЫ ----------
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreSpan = document.getElementById('scoreValue');
+        
+        // Адаптация под размер экрана
+        let size = 700;
+        function resizeCanvas() {
+            const container = document.querySelector('.game-area');
+            const containerSize = container.clientWidth;
+            size = containerSize;
+            canvas.width = size;
+            canvas.height = size;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            if(mouse) {
+                // Корректируем позицию мыши при изменении размера
+                mouse.x = Math.min(Math.max(mouse.x, MOUSE_RADIUS), size - MOUSE_RADIUS);
+                mouse.y = Math.min(Math.max(mouse.y, MOUSE_RADIUS), size - MOUSE_RADIUS);
+            }
+        });
+        
+        let mouse = null;
+        const MOUSE_RADIUS = 32;
+        let currentScore = 0;
+        let gameActive = false;
+        
+        const MIN_SPEED = 0.6;
+        const MAX_SPEED = 3.5;
+        
+        let lastSqueakTime = 0;
+        const SQUEAK_INTERVAL = 900;
+        
+        function getRandomSpeed() {
+            return MIN_SPEED + Math.random() * (MAX_SPEED - MIN_SPEED);
+        }
+        
+        function createOneMouse() {
+            let x = MOUSE_RADIUS + Math.random() * (size - MOUSE_RADIUS * 2);
+            let y = MOUSE_RADIUS + Math.random() * (size - MOUSE_RADIUS * 2);
+            const speed = getRandomSpeed();
+            const angle = Math.random() * Math.PI * 2;
+            const vx = Math.cos(angle) * speed;
+            const vy = Math.sin(angle) * speed;
+            return {
+                x: x, y: y,
+                vx: vx, vy: vy,
+                speed: speed
+            };
+        }
+        
+        function updateMouse() {
+            if(!gameActive || !mouse) return;
+            mouse.x += mouse.vx;
+            mouse.y += mouse.vy;
+            
+            if(mouse.x - MOUSE_RADIUS < 0) { mouse.x = MOUSE_RADIUS; mouse.vx = -mouse.vx; }
+            if(mouse.x + MOUSE_RADIUS > size) { mouse.x = size - MOUSE_RADIUS; mouse.vx = -mouse.vx; }
+            if(mouse.y - MOUSE_RADIUS < 0) { mouse.y = MOUSE_RADIUS; mouse.vy = -mouse.vy; }
+            if(mouse.y + MOUSE_RADIUS > size) { mouse.y = size - MOUSE_RADIUS; mouse.vy = -mouse.vy; }
+            
+            const now = Date.now();
+            if (gameActive && now - lastSqueakTime > SQUEAK_INTERVAL) {
+                playSqueak();
+                lastSqueakTime = now;
+            }
+            
+            if(Math.random() < 0.02) {
+                mouse.vx += (Math.random() - 0.5) * 0.3;
+                mouse.vy += (Math.random() - 0.5) * 0.3;
+                let spd = Math.hypot(mouse.vx, mouse.vy);
+                let targetSpd = mouse.speed;
+                if(spd > 0.1) {
+                    mouse.vx = (mouse.vx / spd) * targetSpd;
+                    mouse.vy = (mouse.vy / spd) * targetSpd;
+                }
+            }
+        }
+        
+        function drawMouse(m) {
+            if(!m) return;
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(m.x, m.y, MOUSE_RADIUS-3, 0, Math.PI*2);
+            ctx.fillStyle = "#9e7b5c";
+            ctx.fill();
+            ctx.strokeStyle = "#5a3e2a";
+            ctx.lineWidth = 1.8;
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.ellipse(m.x-14, m.y-18, 9, 13, -0.3, 0, Math.PI*2);
+            ctx.fillStyle = "#c99e6f";
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(m.x+14, m.y-18, 9, 13, 0.3, 0, Math.PI*2);
+            ctx.fill();
+            ctx.fillStyle = "#000000";
+            ctx.beginPath();
+            ctx.arc(m.x-11, m.y-5, 4, 0, Math.PI*2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(m.x+11, m.y-5, 4, 0, Math.PI*2);
+            ctx.fill();
+            ctx.fillStyle = "white";
+            ctx.beginPath();
+            ctx.arc(m.x-13, m.y-7, 1.5, 0, Math.PI*2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(m.x+9, m.y-7, 1.5, 0, Math.PI*2);
+            ctx.fill();
+            ctx.fillStyle = "#ff8c69";
+            ctx.beginPath();
+            ctx.ellipse(m.x, m.y+3, 4.5, 3.5, 0, 0, Math.PI*2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(m.x-18, m.y+3);
+            ctx.lineTo(m.x-32, m.y-1);
+            ctx.moveTo(m.x-18, m.y+6);
+            ctx.lineTo(m.x-32, m.y+6);
+            ctx.moveTo(m.x+18, m.y+3);
+            ctx.lineTo(m.x+32, m.y-1);
+            ctx.moveTo(m.x+18, m.y+6);
+            ctx.lineTo(m.x+32, m.y+6);
+            ctx.strokeStyle = "#3f2a1a";
+            ctx.lineWidth = 1.3;
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(m.x+25, m.y+14);
+            ctx.quadraticCurveTo(m.x+38, m.y+24, m.x+32, m.y+36);
+            ctx.stroke();
+            ctx.restore();
+        }
+        
+        function drawBackground() {
+            ctx.fillStyle = "#f7e8c8";
+            ctx.fillRect(0,0,size,size);
+            for(let i=0;i<60;i++) {
+                ctx.beginPath();
+                ctx.arc( (i*131)%size, (i*253)%size, 3, 0, Math.PI*2);
+                ctx.fillStyle = "#e7cf9c";
+                ctx.fill();
+            }
+        }
+        
+        function draw() {
+            drawBackground();
+            if(mouse) drawMouse(mouse);
+        }
+        
+        function catchMouseAt(px, py) {
+            if(!gameActive || !mouse) return false;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            let canvasX = (px - rect.left) * scaleX;
+            let canvasY = (py - rect.top) * scaleY;
+            if(canvasX < 0 || canvasX > size || canvasY < 0 || canvasY > size) return false;
+            
+            const dx = mouse.x - canvasX;
+            const dy = mouse.y - canvasY;
+            if(Math.hypot(dx, dy) < MOUSE_RADIUS) {
+                playCatchSound();
+                currentScore++;
+                scoreSpan.innerText = currentScore;
+                mouse = createOneMouse();
+                return true;
+            }
+            return false;
+        }
+        
+        function handleTap(e) {
+            e.preventDefault();
+            let clientX, clientY;
+            if(e.touches) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            catchMouseAt(clientX, clientY);
+        }
+        
+        function resetGame() {
+            currentScore = 0;
+            scoreSpan.innerText = "0";
+            mouse = createOneMouse();
+        }
+        
+        function goToMenu() {
+            gameActive = false;
+            document.getElementById('startMenu').style.display = 'flex';
+        }
+        
+        function startGame() {
+            gameActive = true;
+            resetGame();
+            document.getElementById('startMenu').style.display = 'none';
+        }
+        
+        function exitApp() {
+            if (confirm("Выйти из игры?")) {
+                if (window.history && window.history.length > 1) {
+                    window.history.back();
                 } else {
-                    const AudioContext = window.AudioContext || window.webkitAudioContext;
-                    const ctx = new AudioContext();
-                    audioCtxRef.current = ctx;
-
-                    const bufferSize = 4096;
-                    const brownNoise = (function() {
-                        var lastOut = 0;
-                        var node = ctx.createScriptProcessor(bufferSize, 1, 1);
-                        node.onaudioprocess = function(e) {
-                            var output = e.outputBuffer.getChannelData(0);
-                            for (var i = 0; i < bufferSize; i++) {
-                                var white = Math.random() * 2 - 1;
-                                output[i] = (lastOut + (0.02 * white)) / 1.02;
-                                lastOut = output[i];
-                                output[i] *= 3.5;
-                            }
-                        }
-                        return node;
-                    })();
-
-                    brownNoise.connect(ctx.destination);
-                    nodeRef.current = brownNoise;
-                    setIsPlaying(true);
+                    window.close();
                 }
-            };
-
-            return { isPlaying, toggleNoise };
-        };
-
-        const System22 = () => {
-            const [view, setView] = useState('dashboard');
-            const [streak, setStreak] = useState(0);
-            const [lastCheckIn, setLastCheckIn] = useState(null);
-            const [patterns, setPatterns] = useState([]);
-            const [timer, setTimer] = useState(0);
-            const [isTimerRunning, setIsTimerRunning] = useState(false);
-            const { isPlaying: isNoiseOn, toggleNoise } = AudioEngine();
-
-            useEffect(() => {
-                const savedStreak = localStorage.getItem('s22_streak');
-                const savedLastCheckIn = localStorage.getItem('s22_lastCheck');
-                const savedPatterns = localStorage.getItem('s22_patterns');
-
-                if (savedStreak) setStreak(parseInt(savedStreak));
-                if (savedLastCheckIn) setLastCheckIn(savedLastCheckIn);
-                if (savedPatterns) setPatterns(JSON.parse(savedPatterns));
-            }, []);
-
-            useEffect(() => {
-                localStorage.setItem('s22_patterns', JSON.stringify(patterns));
-            }, [patterns]);
-
-            useEffect(() => {
-                let interval = null;
-                if (isTimerRunning && timer > 0) {
-                    interval = setInterval(() => {
-                        setTimer(timer - 1);
-                    }, 1000);
-                } else if (timer === 0 && isTimerRunning) {
-                    setIsTimerRunning(false);
-                    const audio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-sci-fi-system-check-963.mp3');
-                    audio.play().catch(e => console.log("Audio play failed"));
-                }
-                return () => clearInterval(interval);
-            }, [isTimerRunning, timer]);
-
-            const handleCheckIn = (success) => {
-                const today = new Date().toDateString();
-                if (lastCheckIn === today) return;
-
-                if (success) {
-                    const newStreak = streak + 1;
-                    setStreak(newStreak);
-                    localStorage.setItem('s22_streak', newStreak);
-                } else {
-                    setStreak(0);
-                    localStorage.setItem('s22_streak', 0);
-                }
-                setLastCheckIn(today);
-                localStorage.setItem('s22_lastCheck', today);
-            };
-
-            const addLog = (text, type) => {
-                const newPattern = {
-                    id: Date.now(),
-                    date: new Date().toLocaleString('ar-MA'),
-                    text: text,
-                    type: type
-                };
-                setPatterns([newPattern, ...patterns]);
-            };
-
-            const startTimer = (minutes) => {
-                setTimer(minutes * 60);
-                setIsTimerRunning(true);
-            };
-
-            const formatTime = (seconds) => {
-                const mins = Math.floor(seconds / 60);
-                const secs = seconds % 60;
-                return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-            };
-
-            const Dashboard = () => (
-                <div className="space-y-6 animate-fade-in">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="glass-panel p-4 rounded-sm border-l-4 border-cold-blue">
-                            <h3 className="text-xs text-gray-400 uppercase tracking-widest">Protocol 22 Status</h3>
-                            <div className="mt-2 flex items-baseline gap-2">
-                                <span className="text-4xl font-mono font-bold text-cold-blue glow-text">{streak}</span>
-                                <span className="text-sm text-gray-500">/ 22 DAYS</span>
-                            </div>
-                            <div className="w-full bg-system-gray h-1 mt-2">
-                                <div className="bg-cold-blue h-1 transition-all duration-500" style={{ width: `${Math.min((streak / 22) * 100, 100)}%` }}></div>
-                            </div>
-                        </div>
-                        <div className="glass-panel p-4 rounded-sm border-r-4 border-white">
-                             <h3 className="text-xs text-gray-400 uppercase tracking-widest">Identity Level</h3>
-                             <div className="mt-2 text-xl font-bold">
-                                {streak < 7 ? "PROJECT: ZOMBIE" : streak < 21 ? "PROJECT: AWAKENING" : "ELITE: SOVEREIGN"}
-                             </div>
-                             <p className="text-xs text-gray-500 mt-1">
-                                {streak < 7 ? "المراقب يحاول السيطرة..." : "السيستم يعمل بكفاءة."}
-                             </p>
-                        </div>
-                    </div>
-
-                    <div className="glass-panel p-6 rounded-sm">
-                        <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-                            <span className="w-2 h-2 bg-cold-blue rounded-full animate-pulse"></span>
-                            تقرير الصباح (Morning Report)
-                        </h2>
-                        {lastCheckIn === new Date().toDateString() ? (
-                            <div className="text-center py-4 text-green-500 border border-green-900/30 bg-green-900/10 rounded">
-                                تم تسجيل البيانات لهذا اليوم. انتظر الغد.
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                <p className="text-sm text-gray-400">هل استيقظت قبل 05:05؟ هل الهاتف بقي خارج الغرفة؟</p>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <button 
-                                        onClick={() => handleCheckIn(true)}
-                                        className="py-3 border border-cold-blue text-cold-blue hover:bg-cold-blue hover:text-black transition-colors font-bold"
-                                    >
-                                        نعم (تأكيد السيطرة)
-                                    </button>
-                                    <button 
-                                        onClick={() => {
-                                            handleCheckIn(false);
-                                            addLog("فشل بروتوكول الصباح. تم تصفير العداد.", "failure");
-                                        }}
-                                        className="py-3 border border-danger-red text-danger-red hover:bg-danger-red hover:text-white transition-colors font-bold"
-                                    >
-                                        لا (إعادة ضبط)
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            );
-
-            const DeepWork = () => (
-                <div className="flex flex-col items-center justify-center h-full space-y-8 animate-fade-in">
-                    <div className="text-center space-y-2">
-                        <h2 className="text-2xl font-bold tracking-widest text-cold-blue glow-text">DEEP WORK CHAMBER</h2>
-                        <p className="text-xs text-gray-500">العزلة هي بوابة العظمة</p>
-                    </div>
-
-                    <div className="text-8xl font-mono font-bold tracking-tighter text-white tabular-nums">
-                        {formatTime(timer)}
-                    </div>
-
-                    {!isTimerRunning ? (
-                        <div className="flex gap-4">
-                            <button onClick={() => startTimer(25)} className="px-6 py-2 border border-gray-600 hover:border-white transition-all">25m</button>
-                            <button onClick={() => startTimer(50)} className="px-6 py-2 border border-gray-600 hover:border-white transition-all">50m</button>
-                            <button onClick={() => startTimer(90)} className="px-6 py-2 border border-gray-600 hover:border-white transition-all">90m</button>
-                        </div>
-                    ) : (
-                        <div className="text-center animate-pulse-slow text-danger-red">
-                            <p>لا يوجد زر إيقاف.</p>
-                            <p className="text-xs mt-2">إما أن تنهي الوقت، أو تغلق الصفحة وتعلن الهزيمة.</p>
-                        </div>
-                    )}
-
-                    <button 
-                        onClick={toggleNoise}
-                        className={`mt-8 px-8 py-4 border rounded-sm transition-all flex items-center gap-3 ${isNoiseOn ? 'bg-cold-blue text-black border-cold-blue' : 'border-gray-600 text-gray-400 hover:text-white'}`}
-                    >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
-                        {isNoiseOn ? "BROWN NOISE ACTIVE" : "ACTIVATE NOISE SHIELD"}
-                    </button>
-                </div>
-            );
-
-            const Logs = () => {
-                const [input, setInput] = useState("");
-
-                const handleSubmit = (e) => {
-                    e.preventDefault();
-                    if (!input.trim()) return;
-                    addLog(input, "intel");
-                    setInput("");
-                };
-
-                return (
-                    <div className="h-full flex flex-col space-y-4 animate-fade-in">
-                        <div className="glass-panel p-4 rounded-sm">
-                            <h2 className="text-lg font-bold mb-2">الصندوق الأسود (Pattern Recognition)</h2>
-                            <p className="text-xs text-gray-400 mb-4">سجل الملاحظات، الدوافع، ولحظات الضعف. حول الألم إلى بيانات.</p>
-                            <form onSubmit={handleSubmit} className="flex gap-2">
-                                <input 
-                                    type="text" 
-                                    value={input}
-                                    onChange={(e) => setInput(e.target.value)}
-                                    placeholder="اكتب الملاحظة هنا..."
-                                    className="flex-1 bg-black/50 border border-gray-700 p-2 text-sm focus:border-cold-blue outline-none text-white"
-                                />
-                                <button type="submit" className="bg-white/10 px-4 py-2 hover:bg-cold-blue hover:text-black transition-colors">تسجيل</button>
-                            </form>
-                        </div>
-
-                        <div className="flex-1 overflow-y-auto space-y-2 pr-2">
-                            {patterns.length === 0 && <p className="text-center text-gray-600 mt-10">لا توجد بيانات (No Data).</p>}
-                            {patterns.map(p => (
-                                <div key={p.id} className={`p-3 border-l-2 text-sm font-mono ${p.type === 'failure' ? 'border-danger-red bg-red-900/10' : 'border-cold-blue bg-blue-900/5'}`}>
-                                    <div className="text-xs text-gray-500 mb-1">{p.date}</div>
-                                    <div className="text-gray-300">{p.text}</div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                );
-            };
-
-            const Protocol = () => (
-                <div className="glass-panel p-6 rounded-sm h-full overflow-y-auto animate-fade-in text-justify">
-                    <h2 className="text-2xl font-bold text-cold-blue mb-6 border-b border-gray-800 pb-2">THE ELITE MANIFESTO</h2>
-                    <div className="space-y-6 text-sm leading-relaxed text-gray-300 font-mono">
-                        <p><strong className="text-white">1. السيادة المطلقة:</strong> أنا لست جسدي. أنا المراقب. الجسد آلة بيولوجية تحتاج للترويض، وليس للتفاوض.</p>
-                        <p><strong className="text-white">2. التنفيذ البارد:</strong> الشعور لا يهم. الرغبة لا تهم. الفعل هو الحقيقة الوحيدة. افعل ما يجب فعله بغض النظر عن الطقس الداخلي.</p>
-                        <p><strong className="text-white">3. الموت أو التطور:</strong> العودة لمنطقة الراحة ليست خياراً، بل انتحاراً. السفن أُحرقت.</p>
-                        <p><strong className="text-white">4. قانون الصمت:</strong> الحديث يضيع الطاقة. الصمت يبني الضغط. استخدم الضغط كوقود.</p>
-                        <p><strong className="text-white">5. 05:00 صباحاً:</strong> هذا هو الوقت الذي يُقسم فيه العالم إلى أسياد وعبيد. كن مستيقظاً حين ينامون.</p>
-                        <div className="mt-8 pt-4 border-t border-gray-800 text-center text-xs text-gray-500">
-                            SYSTEM V1.0 // DESIGNED FOR THE GRAND LAB RAT
-                        </div>
-                    </div>
-                </div>
-            );
-
-            return (
-                <div className="min-h-screen flex flex-col max-w-md mx-auto relative overflow-hidden">
-                    <div className="crt-line"></div>
-                    
-                    <header className="p-4 flex justify-between items-center border-b border-gray-800 bg-black/50 backdrop-blur-md z-10 sticky top-0">
-                        <h1 className="text-cold-blue font-bold tracking-wider text-sm">SYSTEM <span className="text-white">22</span></h1>
-                        <div className="flex gap-2 text-xs font-mono">
-                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                            ONLINE
-                        </div>
-                    </header>
-
-                    <main className="flex-1 p-4 overflow-hidden relative z-0">
-                        {view === 'dashboard' && <Dashboard />}
-                        {view === 'deepwork' && <DeepWork />}
-                        {view === 'logs' && <Logs />}
-                        {view === 'protocol' && <Protocol />}
-                    </main>
-
-                    <nav className="border-t border-gray-800 bg-black p-2 z-10">
-                        <div className="grid grid-cols-4 gap-1">
-                            <button 
-                                onClick={() => setView('dashboard')}
-                                className={`p-3 text-xs font-bold uppercase tracking-wide transition-all ${view === 'dashboard' ? 'bg-cold-blue text-black' : 'hover:bg-gray-900 text-gray-500'}`}
-                            >
-                                Status
-                            </button>
-                            <button 
-                                onClick={() => setView('deepwork')}
-                                className={`p-3 text-xs font-bold uppercase tracking-wide transition-all ${view === 'deepwork' ? 'bg-cold-blue text-black' : 'hover:bg-gray-900 text-gray-500'}`}
-                            >
-                                Focus
-                            </button>
-                            <button 
-                                onClick={() => setView('logs')}
-                                className={`p-3 text-xs font-bold uppercase tracking-wide transition-all ${view === 'logs' ? 'bg-cold-blue text-black' : 'hover:bg-gray-900 text-gray-500'}`}
-                            >
-                                Data
-                            </button>
-                            <button 
-                                onClick={() => setView('protocol')}
-                                className={`p-3 text-xs font-bold uppercase tracking-wide transition-all ${view === 'protocol' ? 'bg-cold-blue text-black' : 'hover:bg-gray-900 text-gray-500'}`}
-                            >
-                                Rules
-                            </button>
-                        </div>
-                    </nav>
-                </div>
-            );
-        };
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<System22 />);
-    </script>
+            }
+        }
+        
+        // Обработчик кнопки "Назад" на Android
+        function handleBackButton() {
+            if (gameActive) {
+                goToMenu();
+                return true; // Предотвращаем выход из приложения
+            }
+            return false; // Если игра не активна, позволяем выйти
+        }
+        
+        // Перехват кнопки "Назад"
+        document.addEventListener('backbutton', function(e) {
+            if (handleBackButton()) {
+                e.preventDefault();
+            }
+        });
+        
+        // Для браузеров, где нет события backbutton (используем popstate)
+        window.addEventListener('popstate', function(e) {
+            if (handleBackButton()) {
+                e.preventDefault();
+                history.pushState(null, null, location.href);
+            }
+        });
+        
+        // Добавляем фейковое состояние в историю для перехвата кнопки "Назад"
+        history.pushState(null, null, location.href);
+        
+        function gameLoop() {
+            updateMouse();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // --- Таблица лидеров ---
+        let leaderboard = [];
+        const STORAGE_KEY = 'mouseCatcherLeaderboard';
+        
+        function loadLeaderboard() {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if(stored) {
+                try {
+                    leaderboard = JSON.parse(stored);
+                    leaderboard.sort((a,b) => b.score - a.score);
+                    if(leaderboard.length > 10) leaderboard = leaderboard.slice(0,10);
+                } catch(e) { leaderboard = []; }
+            }
+            if(!leaderboard.length) {
+                leaderboard = [
+                    { name: "Мышелов Профи", score: 24 },
+                    { name: "Кот Матвей", score: 18 },
+                    { name: "Хитрый Лис", score: 12 }
+                ];
+                saveLeaderboard();
+            }
+        }
+        
+        function saveLeaderboard() {
+            leaderboard.sort((a,b) => b.score - a.score);
+            if(leaderboard.length > 10) leaderboard = leaderboard.slice(0,10);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(leaderboard));
+        }
+        
+        function tryAddScoreToLeaderboard(playerName, score) {
+            if(!playerName || playerName.trim() === "") playerName = "Аноним";
+            playerName = playerName.trim().substring(0, 14);
+            const newEntry = { name: playerName, score: score };
+            leaderboard.push(newEntry);
+            leaderboard.sort((a,b) => b.score - a.score);
+            if(leaderboard.length > 10) leaderboard = leaderboard.slice(0,10);
+            saveLeaderboard();
+            renderLeaderboardUI();
+        }
+        
+        function renderLeaderboardUI() {
+            const container = document.getElementById('leaderListContainer');
+            if(!container) return;
+            container.innerHTML = '';
+            if(leaderboard.length === 0) {
+                container.innerHTML = '<div style="text-align:center; padding:20px;">Нет записей</div>';
+                return;
+            }
+            leaderboard.forEach((entry, idx) => {
+                const div = document.createElement('div');
+                div.className = 'leader-item';
+                div.innerHTML = `
+                    <div><span class="rank">${idx+1}</span> ${escapeHtml(entry.name)}</div>
+                    <div class="leader-score">🐭 ${entry.score}</div>
+                `;
+                container.appendChild(div);
+            });
+        }
+        
+        function escapeHtml(str) {
+            return str.replace(/[&<>]/g, function(m) {
+                if(m === '&') return '&amp;';
+                if(m === '<') return '&lt;';
+                if(m === '>') return '&gt;';
+                return m;
+            });
+        }
+        
+        const modal = document.getElementById('leaderboardModal');
+        
+        function openModal() {
+            renderLeaderboardUI();
+            modal.style.display = 'flex';
+        }
+        
+        function closeModal() {
+            modal.style.display = 'none';
+        }
+        
+        function saveCurrentScore() {
+            let playerName = document.getElementById('playerNameInput').value;
+            if(currentScore === 0) {
+                alert("Пока не поймано ни одной мышки! Поймайте хотя бы одну.");
+                return;
+            }
+            tryAddScoreToLeaderboard(playerName, currentScore);
+            closeModal();
+        }
+        
+        // Привязка событий
+        canvas.addEventListener('mousedown', handleTap);
+        canvas.addEventListener('touchstart', handleTap, { passive: false });
+        
+        document.getElementById('startGameBtn').addEventListener('click', startGame);
+        document.getElementById('exitGameBtn').addEventListener('click', exitApp);
+        document.getElementById('leaderboardFromMenuBtn').addEventListener('click', openModal);
+        document.getElementById('saveScoreBtn').addEventListener('click', saveCurrentScore);
+        document.getElementById('closeModalBtn').addEventListener('click', closeModal);
+        
+        modal.addEventListener('click', (e) => { if(e.target === modal) closeModal(); });
+        
+        // Инициализация
+        loadLeaderboard();
+        mouse = createOneMouse();
+        gameActive = false;
+        currentScore = 0;
+        scoreSpan.innerText = "0";
+        gameLoop();
+        document.getElementById('startMenu').style.display = 'flex';
+    })();
+</script>
 </body>
 </html>
